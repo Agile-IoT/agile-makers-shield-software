@@ -1,7 +1,31 @@
 
-###############
-# I2C AT Mega #
-###############
+############################################################################
+# Copyright (c) 2016, 2017 Libelium Comunicaciones Distribuidas S.L.       #
+#                                                                          #
+# All rights reserved. This program and the accompanying materials         #
+# are made available under the terms of the Eclipse Public License v1.0    #
+# and Eclipse Distribution License v1.0 which accompany this distribution. #
+#                                                                          #
+# The Eclipse Public License is available at                               #
+#    http://www.eclipse.org/legal/epl-v10.html                             #
+# and the Eclipse Distribution License is available at                     #
+#   http://www.eclipse.org/org/documents/edl-v10.php.                      #
+#                                                                          #
+# Contributors:                                                            #
+#    David Palomares - Initial API and implementation                      #
+############################################################################
+
+#########################################################
+#                  AGILE I2C ATMega                     #
+#                                                       #
+#    Description: Class to communicate with the ATMega  #
+#       in the AGILE Maker's Shield. This allows to     #
+#       control several features as the sockets, the    #
+#       GPS and the LEDs.                               #
+#    Author: David Palomares <d.palomares@libelium.com> #
+#    Version: 0.1                                       #
+#    Date: February 2017                                #
+#########################################################
 
 # --- Imports -----------
 from agile_makers_shield.buses.i2c import i2c_bus
@@ -139,7 +163,7 @@ class ATMega():
    """Class that implements methods to read from
    and write to the AT Mega via I2C."""
 
-   def __init__(self): 
+   def __init__(self):
       self._bus = i2c_bus.I2C_Bus(ATMEGA_ADDRESS)
       if not self._check:
          raise IOError("Could not connect to the I2C Bus")
@@ -209,7 +233,7 @@ class ATMega():
       lengthBytes = self._bus.read(reg, 2)
       if len(lengthBytes) != 2:
          return ERROR
-      length = (lengthBytes[0] << 8) | (lengthBytes[1]) 
+      length = (lengthBytes[0] << 8) | (lengthBytes[1])
       # Read that data
       if length > 0:
          reg = (socket << SOCKET_SHIFT) | FIFO_RX
@@ -287,7 +311,7 @@ class ATMega():
          raise ValueError("Wrong socket")
       if not parity in PARITIES:
          raise ValueError("Wrong parity")
-      reg = (socket << SOCKET_SHIFT) | SOCKET_PARITY  
+      reg = (socket << SOCKET_SHIFT) | SOCKET_PARITY
       return self._bus.write(reg, [parity])
 
    def getUartInterrupt(self, socket):
@@ -369,4 +393,3 @@ class ATMega():
       reg = (SOCKET_LEDS << SOCKET_SHIFT) | LEDS_AUX[aux]
       return self._bus.write(reg, [bright])
 # -----------------------
-   
