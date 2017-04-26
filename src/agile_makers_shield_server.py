@@ -33,11 +33,12 @@ from gi.repository import GLib
 import dbus
 import dbus.service
 import dbus.mainloop.glib
-from dbus_protocols import dbus_protocol as dbP
-from dbus_protocols import dbus_xbee_802_15_4 as xb_802
-from dbus_protocols import dbus_xbee_zigbee as xb_zb
-from dbus_protocols import dbus_lorawan as lorawan
-from dbus_protocols import dbus_constants as db_cons
+from agile_makers_shield.buses.dbus import protocol_base as dbP
+from agile_makers_shield.buses.dbus import constants as db_cons
+from agile_makers_shield.protocols import xbee_802_15_4 as xb_802
+from agile_makers_shield.protocols import xbee_zigbee as xb_zb
+from agile_makers_shield.protocols import lorawan
+
 import logging
 # -----------------------
 
@@ -50,13 +51,13 @@ mainloop = GLib.MainLoop()
 
 # --- Classes -----------
 class DBusExit(dbus.service.Object):
-    
+
    def __init__(self):
-      super().__init__(dbus.SessionBus(), db_cons.OBJ_PATH) 
-    
+      super().__init__(dbus.SessionBus(), db_cons.OBJ_PATH)
+
    @dbus.service.method(db_cons.BUS_NAME, in_signature="", out_signature="")
    def Exit(self):
-      mainloop.quit() 
+      mainloop.quit()
 # -----------------------
 
 
@@ -77,12 +78,12 @@ def dbusService():
       except dbus.exceptions.DBusException:
          pass
       endProgram(0)
-   
+
 def endProgram(status):
    logger.info("DBus service stopped.")
    sys.exit(status)
 # -----------------------
-   
+
 
 # --- Main program ------
 if __name__ == "__main__":
@@ -95,7 +96,6 @@ if __name__ == "__main__":
    )
    logger = logging.getLogger(db_cons.BUS_NAME)
    # Start DBus
-   dbusService()   
+   dbusService()
    endProgram(0)
 # -----------------------
-

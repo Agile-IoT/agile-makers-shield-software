@@ -29,8 +29,8 @@
 # --- Imports -----------
 import dbus
 import dbus.service
-from dbus_protocols import dbus_protocol as dbP
-from dbus_protocols import dbus_constants as db_cons
+from agile_makers_shield.buses.dbus import protocol_base as dbP
+from agile_makers_shield.buses.dbus import constants as db_cons
 import logging
 import serial
 import xbee
@@ -51,20 +51,20 @@ CMDWRITE = b"WR"
 
 # --- Classes -----------
 class XBee_ZigBee(dbP.Protocol):
-   
-   def __init__(self):     
+
+   def __init__(self):
       super().__init__()
       self._protocol_name = PROTOCOL_NAME
       self._objS0 = XBee_ZigBee_Obj(self._socket0)
       self._objS1 = XBee_ZigBee_Obj(self._socket1)
-       
+
 
 class XBee_ZigBee_Exception(dbP.ProtocolException):
-   
+
    def __init__(self, msg=""):
       super().__init__(PROTOCOL_NAME, msg)
-      
-    
+
+
 class XBee_ZigBee_Obj(dbP.ProtocolObj):
 
    def __init__(self, socket):
@@ -130,12 +130,12 @@ class XBee_ZigBee_Obj(dbP.ProtocolObj):
             self._setup[APIMODE2] = bool(args[APIMODE2])
          else:
             try:
-               param = int(args[key], 16)              
+               param = int(args[key], 16)
             except ValueError:
                param = 0x00
             finally:
                self._setup[ATCMDS].append({str(key): param})
-         
+
    @dbus.service.method(db_cons.BUS_NAME, in_signature="a{sv}", out_signature="")
    def Send(self, args):
       if not self._getConnected():
@@ -161,5 +161,3 @@ class XBee_ZigBee_Obj(dbP.ProtocolObj):
             result[key].append(byte)
       return dbus.Dictionary(result, signature="sv")
 # -----------------------
-
-

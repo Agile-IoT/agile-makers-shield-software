@@ -29,8 +29,8 @@
 # --- Imports -----------
 import dbus
 import dbus.service
-from dbus_protocols import dbus_protocol as dbP
-from dbus_protocols import dbus_constants as db_cons
+from agile_makers_shield.buses.dbus import protocol_base as dbP
+from agile_makers_shield.buses.dbus import constants as db_cons
 import logging
 import serial
 import time
@@ -62,11 +62,11 @@ CMD = {
    "RAD_SET": "radio set" # + parameter + value + \r\n
 }
 RESPONSE = {
-   "OK": b"ok\r\n", 
-   "INVALID_PARAM": b"invalid_param\r\n", 
+   "OK": b"ok\r\n",
+   "INVALID_PARAM": b"invalid_param\r\n",
    "BUSY": b"busy\r\n",
    "DENIED": b"denied\r\n",
-   "ACCEPTED": b"accepted\r\n", 
+   "ACCEPTED": b"accepted\r\n",
    "KEYS_NOT_INIT": b"keys_not_init\r\n",
    "NOT_JOINED": b"not_joined\r\n",
    "NO_FREE_CH": b"no_free_ch\r\n",
@@ -76,9 +76,9 @@ RESPONSE = {
    "INVALID_DATA_LEN": b"invalid_data_len\r\n",
    "MAC_ERR":b"mac_err\r\n",
    "MAC_RX": b"mac_rx", # + port + data "\r\n"
-   "MAC_TX": b"mac_tx_ok", 
-   "RAD_ERR": b"radio_err\r\n", 
-   "RAD_RX": b"radio_rx", # + data + "\r\n" 
+   "MAC_TX": b"mac_tx_ok",
+   "RAD_ERR": b"radio_err\r\n",
+   "RAD_RX": b"radio_rx", # + data + "\r\n"
    "RAD_TX": b"radio_tx_ok\r\n"
 }
 GUARDTIME = {
@@ -122,7 +122,7 @@ SENDLWPORT = {
 DEF_SAVE = False
 DEF_JOIN = JOINLWMODE["OTAA"]
 DEF_TYPE = "uncnf"
-DEF_PORT = 3 
+DEF_PORT = 3
 # LoRa Mode
 MIN_LORA_TIME = 20000 # Minimum time needed to use LoRa mode in milliseconds
 LORA_RX_TIMEOUT = 15 # Timeout of the RX (should match WDT) in seconds
@@ -150,21 +150,21 @@ DEF_WDT = "15000"
 
 # --- Classes -----------
 class LoRaWAN(dbP.Protocol):
-   
-   def __init__(self):     
+
+   def __init__(self):
       super().__init__()
       self._protocol_name = PROTOCOL_NAME
       self._exception = LoRaWAN_Exception()
       self._objS0 = LoRaWAN_Obj(self._socket0)
       self._objS1 = LoRaWAN_Obj(self._socket1)
-       
+
 
 class LoRaWAN_Exception(dbP.ProtocolException):
-   
+
    def __init__(self, msg=""):
       super().__init__(PROTOCOL_NAME, msg)
-      
-    
+
+
 class LoRaWAN_Obj(dbP.ProtocolObj):
 
    def __init__(self, socket):
@@ -175,7 +175,7 @@ class LoRaWAN_Obj(dbP.ProtocolObj):
          SETLWOPTION["SAVE"]: DEF_SAVE,
          SETLWOPTION["JOIN"]: DEF_JOIN
       }
-      
+
    # Override DBus object methods
    @dbus.service.method(db_cons.BUS_NAME, in_signature="", out_signature="")
    def Connect(self):
@@ -185,7 +185,7 @@ class LoRaWAN_Obj(dbP.ProtocolObj):
          raise LoRaWAN_Exception("Module is already connected.")
       self._logger.debug("{}@Connect: Baudrate={}".format(self._full_path, self._setup[SETUP["BAUDRATE"]]))
       self._logger.debug("{}@Connect: Mode={}".format(self._full_path, self._setup[SETUP["MODE"]]))
-      self._module = serial.Serial(self._getSocketDev(self._socket), self._setup[SETUP["BAUDRATE"]], timeout=TIMEOUT)     
+      self._module = serial.Serial(self._getSocketDev(self._socket), self._setup[SETUP["BAUDRATE"]], timeout=TIMEOUT)
       # Reset the module and clean the buffer
       self._module.write(CMD["SYS_RESET"])
       time.sleep(GUARDTIME["DEFAULT"])
@@ -203,8 +203,8 @@ class LoRaWAN_Obj(dbP.ProtocolObj):
                if not RESPONSE["OK"] in rx:
                   self._module.close()
                   self._logger.debug("{}@Connect/LoRa: Error setting {}={}".format(self._full_path, key, value))
-                  raise LoRaWAN_Exception("Error setting the LoRa parameter \"{}\" with the value \"{}\".".format(key, value)) 
-      # LoRaWAN Mode   
+                  raise LoRaWAN_Exception("Error setting the LoRa parameter \"{}\" with the value \"{}\".".format(key, value))
+      # LoRaWAN Mode
       else:
          # Parameters
          for key, value in self._setup.items():
@@ -216,8 +216,8 @@ class LoRaWAN_Obj(dbP.ProtocolObj):
                rx = self._module.readline()
                if not RESPONSE["OK"] in rx:
                   self._module.close()
-                  self._logger.debug("{}@Connect/LoRaWAN: Error setting {}={}".format(self._full_path, key, value)) 
-                  raise LoRaWAN_Exception("Error setting the LoRaWAN parameter \"{}\" with the value \"{}\".".format(key, value)) 
+                  self._logger.debug("{}@Connect/LoRaWAN: Error setting {}={}".format(self._full_path, key, value))
+                  raise LoRaWAN_Exception("Error setting the LoRaWAN parameter \"{}\" with the value \"{}\".".format(key, value))
          # Save parameters?
          if self._setup[SETLWOPTION["SAVE"]]:
             self._logger.debug("{}@Connect/LoRaWAN: Saving parameters".format(self._full_path))
@@ -227,7 +227,7 @@ class LoRaWAN_Obj(dbP.ProtocolObj):
             if not RESPONSE["OK"] in rx:
                self._module.close()
                self._logger.debug("{}@Connect/LoRaWAN: Error saving parameters".format(self._full_path))
-               raise LoRaWAN_Exception("Error saving the LoRaWAN parameters.") 
+               raise LoRaWAN_Exception("Error saving the LoRaWAN parameters.")
          # Join mode
          self._logger.debug("{}@Connect/LoRaWAN: Joining in mode {}".format(self._full_path, self._setup[SETLWOPTION["JOIN"]]))
          sendCmd = "{} {}\r\n".format(CMD["MAC_JOIN"], self._setup[SETLWOPTION["JOIN"]]).encode("utf-8")
@@ -265,7 +265,7 @@ class LoRaWAN_Obj(dbP.ProtocolObj):
             raise LoRaWAN_Exception("The LoRaWAN mode is paused.")
          else:
             self._logger.debug("{}@Connect/LoRaWAN: Unknown error".format(self._full_path))
-            raise LoRaWAN_Exception("Unknown error while joining to the network.")     
+            raise LoRaWAN_Exception("Unknown error while joining to the network.")
       self._setConnected(True)
       self._logger.debug("{}@Connect: Connect OK".format(self._full_path))
 
@@ -277,7 +277,7 @@ class LoRaWAN_Obj(dbP.ProtocolObj):
          raise LoRaWAN_Exception("Module is already disconnected.")
       self._setConnected(False)
       self._module.close()
-      self._logger.debug("{}@Disconnect: Disconnect OK".format(self._full_path)) 
+      self._logger.debug("{}@Disconnect: Disconnect OK".format(self._full_path))
 
    @dbus.service.method(db_cons.BUS_NAME, in_signature="a{sv}", out_signature="")
    def Setup(self, args):
@@ -322,8 +322,8 @@ class LoRaWAN_Obj(dbP.ProtocolObj):
                pass
       self._logger.debug("{}@Setup: Parameters={}".format(self._full_path, self._setup))
       self._logger.debug("{}@Setup: Setup OK".format(self._full_path, self._setup))
-         
-         
+
+
    @dbus.service.method(db_cons.BUS_NAME, in_signature="a{sv}", out_signature="")
    def Send(self, args):
       self._logger.debug("{}@Send: Send INIT".format(self._full_path))
@@ -377,7 +377,7 @@ class LoRaWAN_Obj(dbP.ProtocolObj):
          except ValueError:
             self._logger.debug("{}@Send/LoRa: Could not pause the module to use LoRa mode".format(self._full_path))
             raise LoRaWAN_Exception("Could not pause the module to use LoRa mode.")
-         # Restore LoRaWAN mode 
+         # Restore LoRaWAN mode
          finally:
             self._module.write(CMD["MAC_RESUME"])
             time.sleep(GUARDTIME["SET"])
@@ -508,5 +508,3 @@ class LoRaWAN_Obj(dbP.ProtocolObj):
          raise LoRaWAN_Exception("Cannot receive data in LoRaWAN mode.")
       return dbus.Dictionary(result, signature="sv")
 # -----------------------
-
-
