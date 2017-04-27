@@ -177,7 +177,7 @@ class LoRaWAN_Obj(dbP.ProtocolObj):
       }
 
    # Override DBus object methods
-   @dbus.service.method(db_cons.BUS_NAME, in_signature="", out_signature="")
+   @dbus.service.method(db_cons.BUS_NAME["Protocol"], in_signature="", out_signature="")
    def Connect(self):
       self._logger.debug("{}@Connect: Connect INIT".format(self._full_path))
       if self._getConnected():
@@ -269,7 +269,7 @@ class LoRaWAN_Obj(dbP.ProtocolObj):
       self._setConnected(True)
       self._logger.debug("{}@Connect: Connect OK".format(self._full_path))
 
-   @dbus.service.method(db_cons.BUS_NAME, in_signature="", out_signature="")
+   @dbus.service.method(db_cons.BUS_NAME["Protocol"], in_signature="", out_signature="")
    def Disconnect(self):
       self._logger.debug("{}@Disconnect: Disconnect INIT".format(self._full_path))
       if not self._getConnected():
@@ -279,7 +279,7 @@ class LoRaWAN_Obj(dbP.ProtocolObj):
       self._module.close()
       self._logger.debug("{}@Disconnect: Disconnect OK".format(self._full_path))
 
-   @dbus.service.method(db_cons.BUS_NAME, in_signature="a{sv}", out_signature="")
+   @dbus.service.method(db_cons.BUS_NAME["Protocol"], in_signature="a{sv}", out_signature="")
    def Setup(self, args):
       self._logger.debug("{}@Setup: Setup INIT".format(self._full_path))
       self._setup.clear()
@@ -324,7 +324,7 @@ class LoRaWAN_Obj(dbP.ProtocolObj):
       self._logger.debug("{}@Setup: Setup OK".format(self._full_path, self._setup))
 
 
-   @dbus.service.method(db_cons.BUS_NAME, in_signature="a{sv}", out_signature="")
+   @dbus.service.method(db_cons.BUS_NAME["Protocol"], in_signature="a{sv}", out_signature="")
    def Send(self, args):
       self._logger.debug("{}@Send: Send INIT".format(self._full_path))
       if not self._getConnected():
@@ -449,7 +449,7 @@ class LoRaWAN_Obj(dbP.ProtocolObj):
             self._logger.debug("{}@Send/LoRaWAN: Unknown error".format(self._full_path))
             raise LoRaWAN_Exception("Unknown error while transmitting the data.")
 
-   @dbus.service.method(db_cons.BUS_NAME, in_signature="", out_signature="a{sv}")
+   @dbus.service.method(db_cons.BUS_NAME["Protocol"], in_signature="", out_signature="a{sv}")
    def Receive(self):
       self._logger.debug("{}@Receive: Receive INIT".format(self._full_path))
       if not self._getConnected():

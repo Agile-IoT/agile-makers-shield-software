@@ -76,7 +76,7 @@ class XBee_ZigBee_Obj(dbP.ProtocolObj):
       }
 
    # Override DBus object methods
-   @dbus.service.method(db_cons.BUS_NAME, in_signature="", out_signature="")
+   @dbus.service.method(db_cons.BUS_NAME["Protocol"], in_signature="", out_signature="")
    def Connect(self):
       if self._getConnected():
          raise XBee_ZigBee_Exception("Module is already connected.")
@@ -107,7 +107,7 @@ class XBee_ZigBee_Obj(dbP.ProtocolObj):
             raise XBee_ZigBee_Exception("Did not receive response from AT command")
       self._setConnected(True)
 
-   @dbus.service.method(db_cons.BUS_NAME, in_signature="", out_signature="")
+   @dbus.service.method(db_cons.BUS_NAME["Protocol"], in_signature="", out_signature="")
    def Disconnect(self):
       if not self._getConnected():
          raise XBee_ZigBee_Exception("Module is already disconnected.")
@@ -115,7 +115,7 @@ class XBee_ZigBee_Obj(dbP.ProtocolObj):
       self._module.halt()
       self._serial.close()
 
-   @dbus.service.method(db_cons.BUS_NAME, in_signature="a{sv}", out_signature="")
+   @dbus.service.method(db_cons.BUS_NAME["Protocol"], in_signature="a{sv}", out_signature="")
    def Setup(self, args):
       self._setup.clear()
       self._setup = {
@@ -136,7 +136,7 @@ class XBee_ZigBee_Obj(dbP.ProtocolObj):
             finally:
                self._setup[ATCMDS].append({str(key): param})
 
-   @dbus.service.method(db_cons.BUS_NAME, in_signature="a{sv}", out_signature="")
+   @dbus.service.method(db_cons.BUS_NAME["Protocol"], in_signature="a{sv}", out_signature="")
    def Send(self, args):
       if not self._getConnected():
          raise XBee_ZigBee_Exception("Module is not connected.")
@@ -149,7 +149,7 @@ class XBee_ZigBee_Obj(dbP.ProtocolObj):
             params[key] = bytes(args[key])
       self._module.send(cmd, **params)
 
-   @dbus.service.method(db_cons.BUS_NAME, in_signature="", out_signature="a{sv}")
+   @dbus.service.method(db_cons.BUS_NAME["Protocol"], in_signature="", out_signature="a{sv}")
    def Receive(self):
       if not self._getConnected():
          raise XBee_ZigBee_Exception("Module is not connected.")

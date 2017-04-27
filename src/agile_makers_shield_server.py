@@ -33,29 +33,39 @@ from gi.repository import GLib
 import dbus
 import dbus.service
 import dbus.mainloop.glib
-from agile_makers_shield.buses.dbus import protocol_base as dbP
 from agile_makers_shield.buses.dbus import constants as db_cons
 from agile_makers_shield.protocols import xbee_802_15_4 as xb_802
 from agile_makers_shield.protocols import xbee_zigbee as xb_zb
 from agile_makers_shield.protocols import lorawan
+from agile_makers_shield.features import leds
 
 import logging
 # -----------------------
 
 
 # --- Variables ---------
-LOGLEVEL = logging.INFO # DEBUG, INFO, WARNING, ERROR, CRITICAL
+LOGLEVEL = logging.DEBUG # DEBUG, INFO, WARNING, ERROR, CRITICAL
 mainloop = GLib.MainLoop()
 # -----------------------
 
 
 # --- Classes -----------
-class DBusExit(dbus.service.Object):
+class DBusProtocol(dbus.service.Object):
 
    def __init__(self):
-      super().__init__(dbus.SessionBus(), db_cons.OBJ_PATH)
+      super().__init__(dbus.SessionBus(), db_cons.OBJ_PATH["Protocol"])
 
-   @dbus.service.method(db_cons.BUS_NAME, in_signature="", out_signature="")
+   @dbus.service.method(db_cons.BUS_NAME["Protocol"], in_signature="", out_signature="")
+   def Exit(self):
+      mainloop.quit()
+
+
+class DBusFeature(dbus.service.Object):
+
+   def __init__(self):
+      super().__init__(dbus.SessionBus(), db_cons.OBJ_PATH["Feature"])
+
+   @dbus.service.method(db_cons.BUS_NAME["Feature"], in_signature="", out_signature="")
    def Exit(self):
       mainloop.quit()
 # -----------------------
@@ -64,11 +74,13 @@ class DBusExit(dbus.service.Object):
 # --- Functions ---------
 def dbusService():
    dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
-   dbe = DBusExit()
+   dbP = DBusProtocol()
+   dbF = DBusFeature()
    xb1 = xb_802.XBee_802_15_4()
    xb2 = xb_zb.XBee_ZigBee()
    lw = lorawan.LoRaWAN()
-   logger.info("Running DBus service.")
+   ld = leds.LEDs()
+   logger.info("Running AGILE DBus service.")
    try:
       mainloop.run()
    except KeyboardInterrupt:
@@ -80,7 +92,7 @@ def dbusService():
       endProgram(0)
 
 def endProgram(status):
-   logger.info("DBus service stopped.")
+   logger.info("AGILE DBus service stopped.")
    sys.exit(status)
 # -----------------------
 
@@ -94,7 +106,7 @@ if __name__ == "__main__":
       datefmt="%Y-%m-%d %H:%M:%S",
       level=LOGLEVEL
    )
-   logger = logging.getLogger(db_cons.BUS_NAME)
+   logger = logging.getLogger(db_cons.LOGGER_NAME)
    # Start DBus
    dbusService()
    endProgram(0)
