@@ -17,10 +17,10 @@
 ############################################################################
 
 #########################################################
-#                    LoRaWAN Test                       #
+#                    LoRaWAN Example                    #
 #                                                       #
-#    Description: Test the AGILE LoRaWAN module with    #
-#       the DBus AGILE Protocol API.                    #
+#    Description: Example of the AGILE LoRaWAN module   #
+#       with the DBus AGILE Protocol API.               #
 #    Author: David Palomares <d.palomares@libelium.com> #
 #    Version: 1.0                                       #
 #    Date: November 2016                                #
@@ -30,21 +30,18 @@
 import sys
 import signal
 import time
-import RPi.GPIO as GPIO
 import dbus
 # -----------------------
 
 
 # --- Variables ---------
-#GPIOs
-PINPOWER = 16 # Must be HIGH for shield to work
 # DBus
 BUS_NAME = "iot.agile.Protocol"
 OBJ_PATH = "/iot/agile/Protocol"
 SOCKET0 = "socket0"
 SOCKET1 = "socket1"
-LORAWAN = "LoRaWAN"
-lw = None
+PROTOCOL_NAME = "LoRaWAN"
+protocol = None
 # LoRaWAN
 setup_lorawan = {
    "baudrate": 57600,
@@ -80,7 +77,7 @@ send_lora = {
 
 
 # --- Functions ---------
-def test_lorawan():
+def run_example_lorawan():
    """
    Connect the module and send a message to a base station.
    """
@@ -88,24 +85,24 @@ def test_lorawan():
    try:
       print("Setting the device parameters... ", end="")
       sys.stdout.flush()
-      lw.Setup(dbus.Dictionary(setup_lorawan, signature="sv"))
+      protocol.Setup(dbus.Dictionary(setup_lorawan, signature="sv"))
       print("OK")
       try:
          print("Connecting the module... ", end="")
          sys.stdout.flush()
-         lw.Connect()
+         protocol.Connect()
          print("OK")
          try:
             print("Sending the message... ", end="")
             sys.stdout.flush()
-            lw.Send(dbus.Dictionary(send_lorawan, signature="sv"))
+            protocol.Send(dbus.Dictionary(send_lorawan, signature="sv"))
             print("OK")
          except Exception as err:
             print("Error\n{}".format(err))
          try:
             print("Disconnecting the module... ", end="")
             sys.stdout.flush()
-            lw.Disconnect()
+            protocol.Disconnect()
             print("OK")
          except Exception as err:
             print("Error\n{}".format(err))
@@ -114,7 +111,7 @@ def test_lorawan():
    except Exception as err:
       print("Error\n{}".format(err))
 
-def test_lora():
+def run_example_lora():
    """
    Connect the module and send and receive a message point to point.
    """
@@ -122,17 +119,17 @@ def test_lora():
    try:
       print("Setting the device parameters... ", end="")
       sys.stdout.flush()
-      lw.Setup(dbus.Dictionary(setup_lora, signature="sv"))
+      protocol.Setup(dbus.Dictionary(setup_lora, signature="sv"))
       print("OK")
       try:
          print("Connecting the module... ", end="")
          sys.stdout.flush()
-         lw.Connect()
+         protocol.Connect()
          print("OK")
          try:
             print("Sending the message... ", end="")
             sys.stdout.flush()
-            lw.Send(dbus.Dictionary(send_lora, signature="sv"))
+            protocol.Send(dbus.Dictionary(send_lora, signature="sv"))
             print("OK")
          except Exception as err:
             print("Error\n{}".format(err))
@@ -140,9 +137,9 @@ def test_lora():
             print("(Send a message with another module. The timeout is 15 seconds.)")
             print("Receiving the message... ", end="")
             sys.stdout.flush()
-            msg = lw.Receive()
+            msg = protocol.Receive()
             print("OK")
-            if msg:              
+            if msg:
                print("Message received: {}".format(msg["data"]))
             else:
                print("No message received")
@@ -151,7 +148,7 @@ def test_lora():
          try:
             print("Disconnecting the module... ", end="")
             sys.stdout.flush()
-            lw.Disconnect()
+            protocol.Disconnect()
             print("OK")
          except Exception as err:
             print("Error\n{}".format(err))
@@ -164,19 +161,14 @@ def setup():
    """
    Sets the default parameters of the program.
    """
-   global lw
+   global protocol
    # Signal handler (Ctrl+C exit)
-   signal.signal(signal.SIGINT, signal_handler) 
-   # GPIOs
-   GPIO.setmode(GPIO.BOARD)
-   GPIO.setwarnings(False) 
-   GPIO.setup(PINPOWER, GPIO.OUT)
-   GPIO.output(PINPOWER, GPIO.HIGH)
+   signal.signal(signal.SIGINT, signal_handler)
    # DBus
    session_bus = dbus.SessionBus()
-   objLW = session_bus.get_object(BUS_NAME, OBJ_PATH + "/" + LORAWAN + "/" + SOCKET0)
-   lw = dbus.Interface(objLW, dbus_interface=BUS_NAME)
-   
+   obj = session_bus.get_object(BUS_NAME, OBJ_PATH + "/" + PROTOCOL_NAME + "/" + SOCKET0)
+   protocol = dbus.Interface(obj, dbus_interface=BUS_NAME)
+
 def signal_handler(signal, frame):
    """
    Handles the SIGINT signal.
@@ -184,34 +176,31 @@ def signal_handler(signal, frame):
    print()
    try:
       print("Disconnecting the module... ", end="")
-      lw.Disconnect()
+      protocol.Disconnect()
       print("OK")
    except Exception as err:
       print("Error\n{}").format(err)
    endProgram(0)
-   
+
 def endProgram(status):
    """
    Exists the program.
    """
-   GPIO.output(PINPOWER, GPIO.LOW)
-   GPIO.cleanup()
    sys.exit(status)
 # -----------------------
-   
+
 
 # --- Main program ------
 if __name__ == "__main__":
 
    # Setup
    setup()
-   
-   # Test LoRaWAN
-   test_lorawan()
-   
-   # Test LoRa
-   test_lora()
-   
+
+   # LoRaWAN example
+   run_example_lorawan()
+
+   # LoRa example
+   run_example_lora()
+
    endProgram(0)
 # -----------------------
-
