@@ -35,7 +35,7 @@ import time
 # --- Variables ---------
 I2C_SLAVE = 0x0703
 I2C_DEVICE = "/dev/i2c-1"
-BUFFER_SIZE = 128
+BUFFER_SIZE = 32
 TRIES = 10
 GUARDTIME = 0.1
 ERROR = []
