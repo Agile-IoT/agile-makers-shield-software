@@ -39,6 +39,7 @@ from agile_makers_shield.protocols import xbee_zigbee
 from agile_makers_shield.protocols import lorawan
 from agile_makers_shield.features import leds
 from agile_makers_shield.features import gps
+from agile_makers_shield.features import adc
 
 import logging
 # -----------------------
@@ -82,6 +83,7 @@ def dbusService():
    lorawan_dbus = lorawan.LoRaWAN()
    leds_dbus = leds.LEDs()
    gps_dbus = gps.GPS()
+   adc_bus = adc.ADC()
    logger.info("Running AGILE DBus service.")
    try:
       mainloop.run()
