@@ -159,26 +159,6 @@ class BME280():
       self._dig_H4 = ((self._utosint8(dig_H4[0]) << 24) >> 20) | (dig_H4[1] & 0x0F)
       self._dig_H5 = ((self._utosint8(dig_H5[1]) << 24) >> 20) | ((dig_H5[0] >> 4) & 0x0F)
       self._dig_H6 = self._utosint8(dig_H6[0])
-      #TODO: Delete this
-      print("BME280 calibration values: ")
-      print("   dig_T1: {}".format(self._dig_T1))
-      print("   dig_T2: {}".format(self._dig_T2))
-      print("   dig_T3: {}".format(self._dig_T3))
-      print("   dig_P1: {}".format(self._dig_P1))
-      print("   dig_P2: {}".format(self._dig_P2))
-      print("   dig_P3: {}".format(self._dig_P3))
-      print("   dig_P4: {}".format(self._dig_P4))
-      print("   dig_P5: {}".format(self._dig_P5))
-      print("   dig_P6: {}".format(self._dig_P6))
-      print("   dig_P7: {}".format(self._dig_P7))
-      print("   dig_P8: {}".format(self._dig_P8))
-      print("   dig_P9: {}".format(self._dig_P9))
-      print("   dig_H1: {}".format(self._dig_H1))
-      print("   dig_H2: {}".format(self._dig_H2))
-      print("   dig_H3: {}".format(self._dig_H3))
-      print("   dig_H4: {}".format(self._dig_H4))
-      print("   dig_H5: {}".format(self._dig_H5))
-      print("   dig_H6: {}".format(self._dig_H6))
 
 
    def _compensateTemp(self, utemp):

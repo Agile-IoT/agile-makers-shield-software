@@ -40,13 +40,14 @@ from agile_makers_shield.protocols import lorawan
 from agile_makers_shield.features import leds
 from agile_makers_shield.features import gps
 from agile_makers_shield.features import adc
+from agile_makers_shield.features import atmospheric_sensor
 
 import logging
 # -----------------------
 
 
 # --- Variables ---------
-LOGLEVEL = logging.DEBUG # DEBUG, INFO, WARNING, ERROR, CRITICAL
+LOGLEVEL = logging.INFO # DEBUG, INFO, WARNING, ERROR, CRITICAL
 mainloop = GLib.MainLoop()
 # -----------------------
 
@@ -84,6 +85,7 @@ def dbusService():
    leds_dbus = leds.LEDs()
    gps_dbus = gps.GPS()
    adc_bus = adc.ADC()
+   atmospheric_sensor_dbus = atmospheric_sensor.Atmospheric_Sensor()
    logger.info("Running AGILE DBus service.")
    try:
       mainloop.run()
