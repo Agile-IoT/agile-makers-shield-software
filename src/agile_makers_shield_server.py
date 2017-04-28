@@ -34,10 +34,11 @@ import dbus
 import dbus.service
 import dbus.mainloop.glib
 from agile_makers_shield.buses.dbus import constants as db_cons
-from agile_makers_shield.protocols import xbee_802_15_4 as xb_802
-from agile_makers_shield.protocols import xbee_zigbee as xb_zb
+from agile_makers_shield.protocols import xbee_802_15_4
+from agile_makers_shield.protocols import xbee_zigbee
 from agile_makers_shield.protocols import lorawan
 from agile_makers_shield.features import leds
+from agile_makers_shield.features import gps
 
 import logging
 # -----------------------
@@ -74,12 +75,13 @@ class DBusFeature(dbus.service.Object):
 # --- Functions ---------
 def dbusService():
    dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
-   dbP = DBusProtocol()
-   dbF = DBusFeature()
-   xb1 = xb_802.XBee_802_15_4()
-   xb2 = xb_zb.XBee_ZigBee()
-   lw = lorawan.LoRaWAN()
-   ld = leds.LEDs()
+   protocol_dbus = DBusProtocol()
+   feature_dbus = DBusFeature()
+   xbee_802_15_4_dbus = xbee_802_15_4.XBee_802_15_4()
+   xbee_zigbee_dbus = xbee_zigbee.XBee_ZigBee()
+   lorawan_dbus = lorawan.LoRaWAN()
+   leds_dbus = leds.LEDs()
+   gps_dbus = gps.GPS()
    logger.info("Running AGILE DBus service.")
    try:
       mainloop.run()
