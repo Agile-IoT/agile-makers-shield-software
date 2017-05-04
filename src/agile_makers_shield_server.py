@@ -33,6 +33,7 @@ from gi.repository import GLib
 import dbus
 import dbus.service
 import dbus.mainloop.glib
+from agile_makers_shield.buses.serial import interruptions
 from agile_makers_shield.buses.dbus import constants as db_cons
 from agile_makers_shield.protocols import xbee_802_15_4
 from agile_makers_shield.protocols import xbee_zigbee
@@ -77,11 +78,16 @@ class DBusFeature(dbus.service.Object):
 # --- Functions ---------
 def dbusService():
    dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
+   # Interruptions
+   interruptions = Interruptions()
+   # Base clases
    protocol_dbus = DBusProtocol()
    feature_dbus = DBusFeature()
+   # Protocols
    xbee_802_15_4_dbus = xbee_802_15_4.XBee_802_15_4()
    xbee_zigbee_dbus = xbee_zigbee.XBee_ZigBee()
    lorawan_dbus = lorawan.LoRaWAN()
+   # Features
    leds_dbus = leds.LEDs()
    gps_dbus = gps.GPS()
    adc_bus = adc.ADC()
