@@ -21,14 +21,17 @@
 #    Description: Class to communicate with the ATMega  #
 #       in the AGILE Maker's Shield. This allows to     #
 #       control several features as the sockets, the    #
-#       GPS and the LEDs.                               #
+#       GPS and the LEDs. Only one instance of this     #
+#       class can be created and most of its methods    #
+#       will lock the class when transmitting over I2C. #
 #    Author: David Palomares <d.palomares@libelium.com> #
-#    Version: 0.1                                       #
-#    Date: February 2017                                #
+#    Version: 0.2                                       #
+#    Date: May 2017                                     #
 #########################################################
 
 # --- Imports -----------
 from agile_makers_shield.buses.i2c import i2c_bus
+import threading
 # -----------------------
 
 
@@ -165,13 +168,21 @@ class ATMega():
 
    def __init__(self):
       self._bus = i2c_bus.I2C_Bus(ATMEGA_ADDRESS)
+      self._lock = threading.Lock()
       if not self._check:
          raise IOError("Could not connect to the I2C Bus")
       self._gpsBufferSize = self._getGPSBufferSize()
 
+   def lock_decorator(func):
+      def func_wrapper(self, *args, **kwargs):
+         with self._lock:
+            return func(self, *args, **kwargs)
+      return func_wrapper
+
    def close(self):
       self._bus.close()
 
+   @lock_decorator
    def _check(self):
       """Checks if the I2C bus is working."""
       reg = ATMEGA_CHECK
@@ -182,6 +193,7 @@ class ATMega():
          return False
       return False
 
+   @lock_decorator
    def _getGPSBufferSize(self):
       """Returns the size of the GPS buffer in the ATMega."""
       reg = (SOCKET_GPS << SOCKET_SHIFT) | GPS_READ_BUFFER_SIZE
@@ -203,6 +215,7 @@ class ATMega():
          return False
       return self._bus.write(reg, [MODE_ON])
 
+   @lock_decorator
    def uartOFF(self, socket):
       """Turns on the UART of the specified socket."""
       if not socket in SOCKETS:
@@ -210,6 +223,7 @@ class ATMega():
       reg = (socket << SOCKET_SHIFT) | SOCKET_STATUS
       return self._bus.write(reg, [MODE_OFF])
 
+   @lock_decorator
    def uartStatus(self, socket):
       """Returns the status of the UART in the specified socket."""
       if not socket in SOCKETS:
@@ -217,6 +231,7 @@ class ATMega():
       reg = (socket << SOCKET_SHIFT) | SOCKET_STATUS
       return self._bus.read(reg, 1)[0]
 
+   @lock_decorator
    def sendData(self, socket, data):
       """Sends an array of bytes to the UART of the specified socket."""
       if not socket in SOCKETS:
@@ -224,6 +239,7 @@ class ATMega():
       reg = (socket << SOCKET_SHIFT) | FIFO_TX
       return self._bus.write(reg, data)
 
+   @lock_decorator
    def getData(self, socket):
       """Reads all the available bytes of the UART of the specified socket."""
       if not socket in SOCKETS:
@@ -240,6 +256,7 @@ class ATMega():
          return self._bus.read(reg, length)
       return ERROR
 
+   @lock_decorator
    def getBaudrate(self, socket):
       """Returns the baudrate of the UART in the specified socket."""
       if not socket in SOCKETS:
@@ -251,6 +268,7 @@ class ATMega():
       baudrate = (baud[0] << 32) | (baud[1] << 16) | (baud[2] << 8) | (baud[3])
       return baudrate
 
+   @lock_decorator
    def _setBaudrate(self, socket, baudrate):
       """Sets the baudrate of the UART in the specified socket."""
       if not socket in SOCKETS:
@@ -266,6 +284,7 @@ class ATMega():
       ]
       return self._bus.write(reg, baud)
 
+   @lock_decorator
    def getDatabits(self, socket):
       """Returns the databits of the UART in the specified socket."""
       if not socket in SOCKETS:
@@ -273,6 +292,7 @@ class ATMega():
       reg = (socket << SOCKET_SHIFT) | SOCKET_DATABITS
       return self._bus.read(reg, 1)[0]
 
+   @lock_decorator
    def _setDatabits(self, socket, databits):
       """Sets the databits of the UART in the specified socket."""
       if not socket in SOCKETS:
@@ -282,6 +302,7 @@ class ATMega():
       reg = (socket << SOCKET_SHIFT) | SOCKET_DATABITS
       return self._bus.write(reg, [databits])
 
+   @lock_decorator
    def getStopbits(self, socket):
       """Returns the stopbits of the UART in the specified socket."""
       if not socket in SOCKETS:
@@ -289,6 +310,7 @@ class ATMega():
       reg = (socket << SOCKET_SHIFT) | SOCKET_STOPBITS
       return self._bus.read(reg, 1)[0]
 
+   @lock_decorator
    def _setStopbits(self, socket, stopbits):
       """Sets the stopbits of the UART in the specified socket."""
       if not socket in SOCKETS:
@@ -298,6 +320,7 @@ class ATMega():
       reg = (socket << SOCKET_SHIFT) | SOCKET_STOPBITS
       return self._bus.write(reg, [stopbits])
 
+   @lock_decorator
    def getParity(self, socket):
       """Returns the parity of the UART in the specified socket."""
       if not socket in SOCKETS:
@@ -305,6 +328,7 @@ class ATMega():
       reg = (socket << SOCKET_SHIFT) | SOCKET_PARITY
       return self._bus.read(reg, 1)[0]
 
+   @lock_decorator
    def _setParity(self, socket, parity):
       """Sets the parity of the UART in the specified socket."""
       if not socket in SOCKETS:
@@ -314,6 +338,7 @@ class ATMega():
       reg = (socket << SOCKET_SHIFT) | SOCKET_PARITY
       return self._bus.write(reg, [parity])
 
+   @lock_decorator
    def getUartInterrupt(self, socket):
       """Returns if the UART of the specified socket has new data."""
       if not socket in SOCKETS:
@@ -323,6 +348,7 @@ class ATMega():
          return True
       return False
 
+   @lock_decorator
    def getButtonInterrupt(self, socket):
       """Returns if the button of the specified socket was pressed."""
       if not socket in SOCKETS:
@@ -332,6 +358,7 @@ class ATMega():
          return True
       return False
 
+   @lock_decorator
    def updateGPS(self):
       """Updates the GGA and RMC buffers in the ATMega with the last data."""
       reg = (SOCKET_GPS << SOCKET_SHIFT) | GPS_UPDATE
@@ -339,16 +366,19 @@ class ATMega():
          return True
       return False
 
+   @lock_decorator
    def getGPSGGA(self):
       """Returns the last NMEA GGA sentence stored."""
       reg = (SOCKET_GPS << SOCKET_SHIFT) | GPS_READ_GGA
       return self._bus.read(reg, self._gpsBufferSize)
 
+   @lock_decorator
    def getGPSRMC(self):
       """Returns the last NMEA RMC sentece stored."""
       reg = (SOCKET_GPS << SOCKET_SHIFT) | GPS_READ_RMC
       return self._bus.read(reg, self._gpsBufferSize)
 
+   @lock_decorator
    def getLedSocket(self, socket):
       """Returns the RGB brightness of the specified socket LED."""
       if not socket in SOCKETS:
@@ -361,6 +391,7 @@ class ATMega():
       bright_B = self._bus.read(reg, 1)[0]
       return [bright_R, bright_G, bright_B]
 
+   @lock_decorator
    def setLedSocket(self, socket, rgb_bright):
       """Sets the RGB brightness of the specified socket LED."""
       if not socket in SOCKETS:
@@ -378,6 +409,7 @@ class ATMega():
       reg = (SOCKET_LEDS << SOCKET_SHIFT) | LEDS_SOCKET_B[socket]
       return self._bus.write(reg, [rgb_bright[2]])
 
+   @lock_decorator
    def getLedAux(self, aux):
       """Returns the brightness of the specified auxiliar LED."""
       if not aux in LEDS_AUX:
@@ -385,6 +417,7 @@ class ATMega():
       reg = (SOCKET_LEDS << SOCKET_SHIFT) | LEDS_AUX[aux]
       return self._bus.read(reg, 1)[0]
 
+   @lock_decorator
    def setLedAux(self, aux, bright):
       """Sets the brightness of the specified auxiliar LED."""
       if not aux in LEDS_AUX:
