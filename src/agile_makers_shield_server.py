@@ -48,8 +48,12 @@ import logging
 
 
 # --- Variables ---------
+# Log
 LOGLEVEL = logging.INFO # DEBUG, INFO, WARNING, ERROR, CRITICAL
+# DBus
 mainloop = GLib.MainLoop()
+# Interruptions
+isr = interruptions.Interruptions()
 # -----------------------
 
 
@@ -78,8 +82,6 @@ class DBusFeature(dbus.service.Object):
 # --- Functions ---------
 def dbusService():
    dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
-   # Interruptions
-   interruptions = Interruptions()
    # Base clases
    protocol_dbus = DBusProtocol()
    feature_dbus = DBusFeature()
@@ -104,6 +106,7 @@ def dbusService():
       endProgram(0)
 
 def endProgram(status):
+   isr.close()
    logger.info("AGILE DBus service stopped.")
    sys.exit(status)
 # -----------------------

@@ -102,4 +102,8 @@ class Interruptions(metaclass=singleton.Singleton):
             if (observer.attribute & INT_UART_1):
                self._interrupts[INT_UART_1] = False
             self._observers.remove(observer)
+
+   def close(self):
+      GPIO.remove_event_detect(PININT)
+      GPIO.cleanup()
 # -----------------------

@@ -78,7 +78,7 @@ NOISE_DATA = [0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
 
 
 # --- Classes -----------
-class Serial_Bus(observer.Observer):
+class Serial(observer.Observer):
    """Class that implements methods to read from
    and write to the  the ATMega serial buses via I2C."""
 
@@ -86,11 +86,12 @@ class Serial_Bus(observer.Observer):
          stopbits=DEFAULT_STOPBITS, parity=DEFAULT_PARITY, timeout=DEFAULT_TIMEOUT):
       self._atmega = atmega.ATMega()
       self._socket = socket
-      self._baudrate = baudrate
-      self._databits = databits
-      self._stopbits = stopbits
-      self._parity = parity
-      self._timeout = timeout
+      self.baudrate = baudrate
+      self.databits = databits
+      self.stopbits = stopbits
+      self.parity = parity
+      self.timeout = timeout
+      self._open = False
       self._buffer = []
       self._interrupts = 0
       if socket == atmega.SOCKET_0:
@@ -98,6 +99,14 @@ class Serial_Bus(observer.Observer):
       if socket == atmega.SOCKET_1:
          self._interrupts = self._interrupts | interruptions.INT_UART_1
       self._interruptions = interruptions.Interruptions()
+
+   @property
+   def port(self):
+      return self._socket
+
+   @port.setter
+   def port(self, value):
+      self._socket = value
 
    def update(self):
       """Overrides observer.update() method."""
@@ -120,14 +129,26 @@ class Serial_Bus(observer.Observer):
    def in_waiting(self):
       return len(self._buffer)
 
+   def inWaiting(self):
+      return self.in_waiting
+
+   def isOpen():
+      return self._open
+
    def open(self):
+      if self._open:
+         raise IOError("Socket {} is already open".format(self._socket))
       self._interruptions.register(self)
-      self._atmega.uartON(self._socket, self._baudrate, self._databits,
-                          self._stopbits, self._parity)
+      self._atmega.uartON(self._socket, self.baudrate, self.databits,
+                          self.stopbits, self.parity)
+      self._open = True
 
    def close(self):
+      if self._open:
+         raise IOError("Socket {} is already closed".format(self._socket))
       self._interruptions.unregister(self)
       self._atmega.uartOFF(self._socket)
+      self._open = False
 
    def write(self, data):
       self._atmega.sendData(self._socket, list(data))
@@ -135,7 +156,7 @@ class Serial_Bus(observer.Observer):
    def read(self, size=1):
       data = []
       current_size = size
-      limit = time.time() + self._timeout
+      limit = time.time() + self.timeout
       while (time.time() < limit) and (len(data) < current_size):
          buffer_size = len(self._buffer)
          if buffer_size >= current_size:
@@ -150,7 +171,7 @@ class Serial_Bus(observer.Observer):
 
    def readline(self):
       line = []
-      limit = time.time() + self._timeout
+      limit = time.time() + self.timeout
       while (time.time() < limit) and not line:
          try:
             index = self._buffer.index(CHAR_NEWLINE)
@@ -162,7 +183,7 @@ class Serial_Bus(observer.Observer):
 
    def readlines(self):
       lines = []
-      limit = time.time() + self._timeout
+      limit = time.time() + self.timeout
       while time.time() < limit:
          while (len(self._buffer) > 0):
             try:
