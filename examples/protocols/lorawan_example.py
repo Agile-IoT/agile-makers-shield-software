@@ -81,7 +81,7 @@ def run_example_lorawan():
    """
    Connect the module and send a message to a base station.
    """
-   print("*** Testing LoRaWAN ***")
+   print("\x1b[1;37;39m" + "LoRaWAN Example" + "\x1b[0m")
    try:
       print("Setting the device parameters... ", end="")
       sys.stdout.flush()
@@ -115,7 +115,7 @@ def run_example_lora():
    """
    Connect the module and send and receive a message point to point.
    """
-   print("\n*** Testing LoRa ***")
+   print("\x1b[1;37;39m" + "LoRa Example" + "\x1b[0m")
    try:
       print("Setting the device parameters... ", end="")
       sys.stdout.flush()
