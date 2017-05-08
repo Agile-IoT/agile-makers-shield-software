@@ -78,27 +78,52 @@ NOISE_DATA = [0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
 
 
 # --- Classes -----------
+class SerialException(IOError):
+    """Base class for serial port related exceptions."""
+
+class SerialTimeoutException(SerialException):
+   """Write timeouts give an exception."""
+
+class Timeout():
+   """Class to control timeouts."""
+
+   def __init__(self, timeout=DEFAULT_TIMEOUT, raises_timeout=False):
+      self._timeout = timeout
+      self._raises_timeout = raises_timeout
+      self._limit = time.time() + self._timeout
+
+   def check(self):
+      if time.time() > self._limit:
+         if self._raises_timeout:
+            raise SerialTimeoutException()
+         return True
+      return False
+
 class Serial(observer.Observer):
    """Class that implements methods to read from
    and write to the  the ATMega serial buses via I2C."""
 
-   def __init__(self, socket, baudrate=DEFAULT_BAUDRATE, databits=DEFAULT_DATABITS,
-         stopbits=DEFAULT_STOPBITS, parity=DEFAULT_PARITY, timeout=DEFAULT_TIMEOUT):
+   def __init__(self, port=None, baudrate=DEFAULT_BAUDRATE, databits=DEFAULT_DATABITS,
+         stopbits=DEFAULT_STOPBITS, parity=DEFAULT_PARITY, timeout=DEFAULT_TIMEOUT,
+         raises_timeout=False):
       self._atmega = atmega.ATMega()
-      self._socket = socket
+      self._socket = port
       self.baudrate = baudrate
       self.databits = databits
       self.stopbits = stopbits
       self.parity = parity
       self.timeout = timeout
+      self.raises_timeout = raises_timeout
       self._open = False
       self._buffer = []
       self._interrupts = 0
-      if socket == atmega.SOCKET_0:
-         self._interrupts = self._interrupts | interruptions.INT_UART_0
-      if socket == atmega.SOCKET_1:
-         self._interrupts = self._interrupts | interruptions.INT_UART_1
+      if self._socket == atmega.SOCKET_0:
+         self._interrupts = interruptions.INT_UART_0
+      if self._socket == atmega.SOCKET_1:
+         self._interrupts = interruptions.INT_UART_1
       self._interruptions = interruptions.Interruptions()
+      if self._socket is not None:
+         self.open()
 
    @property
    def port(self):
@@ -106,6 +131,10 @@ class Serial(observer.Observer):
 
    @port.setter
    def port(self, value):
+      if value == atmega.SOCKET_0:
+         self._interrupts = interruptions.INT_UART_0
+      if value == atmega.SOCKET_1:
+         self._interrupts = interruptions.INT_UART_1
       self._socket = value
 
    def update(self):
@@ -125,6 +154,10 @@ class Serial(observer.Observer):
             return
       self._buffer.extend(data)
 
+   def _check_timeout(self, limit):
+      if time.time() > limit:
+         raise SerialTimeoutException()
+
    @property
    def in_waiting(self):
       return len(self._buffer)
@@ -132,32 +165,38 @@ class Serial(observer.Observer):
    def inWaiting(self):
       return self.in_waiting
 
-   def isOpen():
+   def isOpen(self):
       return self._open
 
    def open(self):
       if self._open:
-         raise IOError("Socket {} is already open".format(self._socket))
+         raise SerialException("Socket {} is already open".format(self._socket))
       self._interruptions.register(self)
       self._atmega.uartON(self._socket, self.baudrate, self.databits,
                           self.stopbits, self.parity)
+      self._buffer = []
       self._open = True
 
    def close(self):
-      if self._open:
-         raise IOError("Socket {} is already closed".format(self._socket))
+      if not self._open:
+         raise SerialException("Socket {} is already closed".format(self._socket))
       self._interruptions.unregister(self)
       self._atmega.uartOFF(self._socket)
+      self._buffer = []
       self._open = False
 
    def write(self, data):
+      if not self._open:
+         raise SerialException("Socket {} is closed".format(self._socket))
       self._atmega.sendData(self._socket, list(data))
 
    def read(self, size=1):
+      if not self._open:
+         raise SerialException("Socket {} is closed".format(self._socket))
       data = []
       current_size = size
-      limit = time.time() + self.timeout
-      while (time.time() < limit) and (len(data) < current_size):
+      timeout = Timeout(self.timeout, self.raises_timeout)
+      while (len(data) < current_size):
          buffer_size = len(self._buffer)
          if buffer_size >= current_size:
             data.extend(self._buffer[0:current_size])
@@ -167,24 +206,32 @@ class Serial(observer.Observer):
             data.extend(self._buffer[0:buffer_size])
             self._buffer = []
             current_size = current_size - buffer_size
+         if timeout.check() and (len(data) < current_size):
+            break
       return bytes(data)
 
    def readline(self):
+      if not self._open:
+         raise SerialException("Socket {} is closed".format(self._socket))
       line = []
-      limit = time.time() + self.timeout
-      while (time.time() < limit) and not line:
+      timeout = Timeout(self.timeout, self.raises_timeout)
+      while not line:
          try:
             index = self._buffer.index(CHAR_NEWLINE)
             line = self._buffer[0:(index+1)]
             self._buffer = self._buffer[(index+1):]
          except ValueError:
             pass
+         if timeout.check() and not line:
+            break
       return bytes(line)
 
    def readlines(self):
+      if not self._open:
+         raise SerialException("Socket {} is closed".format(self._socket))
       lines = []
-      limit = time.time() + self.timeout
-      while time.time() < limit:
+      timeout = Timeout(self.timeout, self.raises_timeout)
+      while True:
          while (len(self._buffer) > 0):
             try:
                index = self._buffer.index(CHAR_NEWLINE)
@@ -193,8 +240,12 @@ class Serial(observer.Observer):
                lines.append(bytes(line))
             except ValueError:
                break
+         if timeout.check():
+            break
       return lines
 
    def flush(self):
+      if not self._open:
+         raise SerialException("Socket {} is closed".format(self._socket))
       self._buffer = []
 # -----------------------

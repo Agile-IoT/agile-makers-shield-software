@@ -25,29 +25,26 @@
 #    Date: November 2016                                #
 #########################################################
 
+# --- Imports -----------
+from agile_makers_shield.buses.i2c import atmega
+# -----------------------
+
 
 # --- Variables ---------
 LOGGER_NAME = "AGILE_DBus"
 BUS_NAME = {
+   "Base": "iot.agile.MakersShield",
    "Protocol": "iot.agile.Protocol",
    "Feature": "iot.agile.Feature"
 }
 OBJ_PATH = {
+    "Base": "/iot/agile/MakersShield",
     "Protocol": "/iot/agile/Protocol",
     "Feature": "/iot/agile/Feature"
 }
 SOCKET0 = "socket0"
 SOCKET1 = "socket1"
-try:
-   import RPi.GPIO as GPIO
-   if GPIO.RPI_INFO["TYPE"] == "Pi 3 Model B":
-      SOCKET0DEV = "/dev/ttyS0"
-      SOCKET1DEV = "/dev/ttyS0"
-   else:
-      SOCKET0DEV = "/dev/ttyAMA0"
-      SOCKET1DEV = "/dev/ttyAMA0"
-except:
-   SOCKET0DEV = "/dev/ttyUSB0"
-   SOCKET1DEV = "/dev/ttyUSB1"
+SOCKET0DEV = atmega.SOCKET_0
+SOCKET1DEV = atmega.SOCKET_1
 SOCKETDEV = {SOCKET0: SOCKET0DEV, SOCKET1: SOCKET1DEV}
 # -----------------------

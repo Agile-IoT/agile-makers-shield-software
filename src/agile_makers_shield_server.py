@@ -17,14 +17,13 @@
 ############################################################################
 
 #########################################################
-#            AGILE DBus Protocol Server                 #
+#           AGILE Maker's Shield DBus Server            #
 #                                                       #
-#    Description: Runs the AGILE DBus Protocol defined  #
-#       in the AGILE API for the XBee 802.15.4 and XBee #
-#       ZigBee protocols.                               #
+#    Description: Server that exposes protocols and     #
+#       features of the AGILE Maker's Shield over DBus. #
 #    Author: David Palomares <d.palomares@libelium.com> #
-#    Version: 0.2                                       #
-#    Date: November 2016                                #
+#    Version: 0.3                                       #
+#    Date: May 2017                                     #
 #########################################################
 
 # --- Imports -----------
@@ -33,6 +32,7 @@ from gi.repository import GLib
 import dbus
 import dbus.service
 import dbus.mainloop.glib
+import argparse
 from agile_makers_shield.buses.serial import interruptions
 from agile_makers_shield.buses.dbus import constants as db_cons
 from agile_makers_shield.protocols import xbee_802_15_4
@@ -42,38 +42,31 @@ from agile_makers_shield.features import leds
 from agile_makers_shield.features import gps
 from agile_makers_shield.features import adc
 from agile_makers_shield.features import atmospheric_sensor
-
 import logging
 # -----------------------
+
+dbus.mainloop.glib.threads_init()
+GLib.threads_init()
 
 
 # --- Variables ---------
 # Log
-LOGLEVEL = logging.INFO # DEBUG, INFO, WARNING, ERROR, CRITICAL
+LOGLEVEL_DEFAULT = "INFO"
+LOGLEVELS = ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
+# Interruptions
+#isr = interruptions.Interruptions()
 # DBus
 mainloop = GLib.MainLoop()
-# Interruptions
-isr = interruptions.Interruptions()
 # -----------------------
 
 
 # --- Classes -----------
-class DBusProtocol(dbus.service.Object):
+class DBusBase(dbus.service.Object):
 
    def __init__(self):
-      super().__init__(dbus.SessionBus(), db_cons.OBJ_PATH["Protocol"])
+      super().__init__(dbus.SessionBus(), db_cons.OBJ_PATH["Base"])
 
-   @dbus.service.method(db_cons.BUS_NAME["Protocol"], in_signature="", out_signature="")
-   def Exit(self):
-      mainloop.quit()
-
-
-class DBusFeature(dbus.service.Object):
-
-   def __init__(self):
-      super().__init__(dbus.SessionBus(), db_cons.OBJ_PATH["Feature"])
-
-   @dbus.service.method(db_cons.BUS_NAME["Feature"], in_signature="", out_signature="")
+   @dbus.service.method(db_cons.BUS_NAME["Base"], in_signature="", out_signature="")
    def Exit(self):
       mainloop.quit()
 # -----------------------
@@ -81,10 +74,10 @@ class DBusFeature(dbus.service.Object):
 
 # --- Functions ---------
 def dbusService():
+   GLib.threads_init()
    dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
-   # Base clases
-   protocol_dbus = DBusProtocol()
-   feature_dbus = DBusFeature()
+   # Base
+   base_dbus = DBusBase()
    # Protocols
    xbee_802_15_4_dbus = xbee_802_15_4.XBee_802_15_4()
    xbee_zigbee_dbus = xbee_zigbee.XBee_ZigBee()
@@ -106,7 +99,7 @@ def dbusService():
       endProgram(0)
 
 def endProgram(status):
-   isr.close()
+   #isr.close()
    logger.info("AGILE DBus service stopped.")
    sys.exit(status)
 # -----------------------
@@ -114,12 +107,29 @@ def endProgram(status):
 
 # --- Main program ------
 if __name__ == "__main__":
+   # Parse the args
+   parser = argparse.ArgumentParser(description="Reads the value of the pollen sensor and stores it in a log file ")
+   parser.add_argument("-l", "--loglevel", nargs="?", type=str, default=LOGLEVEL_DEFAULT, help="Log level: DEBUG, INFO, WARNING, ERROR, CRITICAL. Default: {}".format(LOGLEVEL_DEFAULT))
+   args = parser.parse_args()
+   if args.loglevel in LOGLEVELS:
+      if (args.loglevel == "DEBUG") or (args.loglevel == "debug") or (args.loglevel == "Debug"):
+         log_level = logging.DEBUG
+      elif (args.loglevel == "INFO") or (args.loglevel == "info") or (args.loglevel == "Info"):
+         log_level = logging.INFO
+      elif (args.loglevel == "WARNING") or (args.loglevel == "warning") or (args.loglevel == "Warning"):
+         log_level = logging.WARNING
+      elif (args.loglevel == "ERROR") or (args.loglevel == "error") or (args.loglevel == "Error"):
+         log_level = logging.ERROR
+      elif (args.loglevel == "CRITICAL") or (args.loglevel == "critical") or (args.loglevel == "Critical"):
+         log_level = logging.CRITICAL
+   else:
+      log_level = logging.INFO
    # Start logging
    logging.basicConfig(
       filemode="a",
       format="%(asctime)s [%(levelname)s] %(message)s",
       datefmt="%Y-%m-%d %H:%M:%S",
-      level=LOGLEVEL
+      level=log_level
    )
    logger = logging.getLogger(db_cons.LOGGER_NAME)
    # Start DBus

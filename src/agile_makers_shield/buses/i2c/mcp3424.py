@@ -131,7 +131,6 @@ class MCP3424():
          ts = time.time()
          while ((data[-1] != (configuration & MCP3424_MASK_RDY)) and ((time.time() - ts) < MCP3424_TIMEOUT)):
             data = self._bus._readRaw(size)
-      #print("Configuration: {}; Received data: {}".format(configuration, data)) #TODO: logger?
       # Convert the data
       data[0] = data[0] & ((1 << (size_bits % 8)) -1)
       value = 0

@@ -31,6 +31,7 @@
 
 # --- Imports -----------
 from agile_makers_shield.buses.i2c import i2c_bus
+from agile_makers_shield.utils import singleton
 import threading
 # -----------------------
 
@@ -162,7 +163,7 @@ PARITIES = {
 
 
 # --- Classes -----------
-class ATMega():
+class ATMega(metaclass=singleton.Singleton):
    """Class that implements methods to read from
    and write to the AT Mega via I2C."""
 
@@ -174,10 +175,11 @@ class ATMega():
       self._gpsBufferSize = self._getGPSBufferSize()
 
    def lock_decorator(func):
-      def func_wrapper(self, *args, **kwargs):
-         with self._lock:
-            return func(self, *args, **kwargs)
-      return func_wrapper
+      def lock_wrapper(self, *args, **kwargs):
+         result = func(self, *args, **kwargs)
+         return result
+
+      return lock_wrapper
 
    def close(self):
       self._bus.close()

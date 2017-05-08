@@ -31,8 +31,8 @@ import dbus
 import dbus.service
 from agile_makers_shield.buses.dbus import protocol_base as dbP
 from agile_makers_shield.buses.dbus import constants as db_cons
+from agile_makers_shield.buses.serial import serial_bus as serial
 import logging
-import serial
 import time
 # -----------------------
 
