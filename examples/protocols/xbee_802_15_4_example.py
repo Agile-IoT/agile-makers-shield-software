@@ -112,7 +112,7 @@ class StoppableThread(threading.Thread):
       else:
          # Receive data
          while True:
-            if self._stopped():
+            if self.stopped():
                break
             data = self._protocol.Receive()
             if data:

@@ -104,7 +104,7 @@ class XBee_ZigBee_Obj(dbP.ProtocolObj):
       raise IOError("Timeout reading from the XBee module.")
 
    def _get_module_data(self):
-      data = b""
+      data = {}
       signal.signal(signal.SIGALRM, self._timeout_handler)
       signal.alarm(TIMEOUT)
       try:
