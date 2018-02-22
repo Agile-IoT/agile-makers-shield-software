@@ -9,8 +9,8 @@
 #     Create-Net / FBK - initial API and implementation
 #-------------------------------------------------------------------------------
 
-ARG BASEIMAGE_BUILD=resin/raspberry-pi3-python:3.4
-#ARG BASEIMAGE_BUILD=resin/intel-nuc-python:3.4
+ARG BASEIMAGE_BUILD=resin/raspberrypi3-python:3.4-20180216
+#ARG BASEIMAGE_BUILD=resin/intel-nuc-python:3.4-20180222
 FROM $BASEIMAGE_BUILD
 
 # resin-sync will always sync to /usr/src/app, so code needs to be here.
