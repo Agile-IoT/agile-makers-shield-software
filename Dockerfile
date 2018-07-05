@@ -25,6 +25,8 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
     libdbus-glib-1-dev \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
+RUN pip3 install --upgrade pip
+
 COPY requirements.txt requirements.txt
 
 RUN python3 -m pip install -r requirements.txt
