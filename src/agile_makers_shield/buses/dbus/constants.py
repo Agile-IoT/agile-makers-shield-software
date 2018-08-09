@@ -15,15 +15,17 @@
 #    David Palomares - Initial API and implementation                      #
 ############################################################################
 
-#########################################################
-#                AGILE DBus Constants                   #
-#                                                       #
-#    Description: Constant variables of the AGILE       #
-#       DBus Protocol API.                              #
-#    Author: David Palomares <d.palomares@libelium.com> #
-#    Version: 0.1                                       #
-#    Date: November 2016                                #
-#########################################################
+
+"""
+AGILE DBus Constants.
+
+Description: Constant variables of the AGILE
+             DBus Protocol API.
+Author: David Palomares <d.palomares@libelium.com>
+Version: 0.1
+Date: November 2016
+"""
+
 
 # --- Imports -----------
 from agile_makers_shield.buses.i2c import atmega
@@ -33,9 +35,9 @@ from agile_makers_shield.buses.i2c import atmega
 # --- Variables ---------
 LOGGER_NAME = "AGILE_DBus"
 BUS_NAME = {
-   "Base": "iot.agile.MakersShield",
-   "Protocol": "iot.agile.Protocol",
-   "Feature": "iot.agile.Feature"
+    "Base": "iot.agile.MakersShield",
+    "Protocol": "iot.agile.Protocol",
+    "Feature": "iot.agile.Feature"
 }
 OBJ_PATH = {
     "Base": "/iot/agile/MakersShield",

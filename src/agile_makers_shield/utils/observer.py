@@ -15,37 +15,37 @@
 #    David Palomares - Initial API and implementation                      #
 ############################################################################
 
-#########################################################
-#              AGILE Serial Interruptions               #
-#                                                       #
-#    Description: Abstract class that implements        #
-#       an Observer pattern with a property.            #
-#    Author: David Palomares <d.palomares@libelium.com> #
-#    Version: 0.1                                       #
-#    Date: May 2017                                     #
-#########################################################
+
+"""
+AGILE Serial Interruptions.
+
+Description: Abstract class that implements
+             an Observer pattern with a property.
+Author: David Palomares <d.palomares@libelium.com>
+Version: 0.1
+Date: May 2017
+"""
+
 
 # --- Imports -----------
 from abc import ABCMeta, abstractmethod
 # -----------------------
 
 
-# --- Variables ---------
-
-# -----------------------
-
-
 # --- Classes -----------
 class Observer(object):
-   """Class to be extended by the methods that want to subscribe."""
-   __metaclass__ = ABCMeta
+    """Class to be extended by the methods that want to subscribe."""
 
-   @abstractmethod
-   def update(self):
-      pass
+    __metaclass__ = ABCMeta
 
-   @property
-   @abstractmethod
-   def attribute(self):
-      return None
+    @abstractmethod
+    def update(self):
+        """Abstract method for update an obersver."""
+        pass
+
+    @property
+    @abstractmethod
+    def attribute(self):
+        """Abstract property to subscribe an obersver."""
+        return None
 # -----------------------

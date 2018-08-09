@@ -15,32 +15,29 @@
 #    David Palomares - Initial API and implementation                      #
 ############################################################################
 
-#########################################################
-#              AGILE Serial Interruptions               #
-#                                                       #
-#    Description: Class to implement the Singleton      #
-#       pattern. Use it as a metaclass:                 #
-#          class TheClass(metaclass=Singleton)          #
-#    Author: David Palomares <d.palomares@libelium.com> #
-#    Version: 0.1                                       #
-#    Date: May 2017                                     #
-#########################################################
 
-# --- Imports -----------
+"""
+AGILE Serial Interruptions.
 
-# -----------------------
-
-
-# --- Variables ---------
-
-# -----------------------
+Description: Class to implement the Singleton
+             pattern. Use it as a metaclass:
+                 class TheClass(metaclass=Singleton)
+Author: David Palomares <d.palomares@libelium.com>
+Version: 0.1
+Date: May 2017
+"""
 
 
 # --- Classes -----------
 class Singleton(type):
-   _instances = {}
-   def __call__(cls, *args, **kwargs):
-      if cls not in cls._instances:
-         cls._instances[cls] = super(Singleton, cls).__call__(*args, **kwargs)
-      return cls._instances[cls]
+    """Singleton metaclass."""
+
+    _instances = {}
+
+    def __call__(cls, *args, **kwargs):
+        """Return a new instance if not any or return a existing one."""
+        if cls not in cls._instances:
+            cls._instances[cls] = \
+                super(Singleton, cls).__call__(*args, **kwargs)
+        return cls._instances[cls]
 # -----------------------
