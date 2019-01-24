@@ -286,7 +286,7 @@ class XBee_802_15_4_Obj(dbP.ProtocolObj):
         db_cons.BUS_NAME["Protocol"],
         in_signature="",
         out_signature="a{sv}"
-    )ea
+    )
     def Receive(self):
         """Receive using the XBee 802.15.14 module."""
         self._logger.debug("{}@Receive: Receive INIT".format(self._full_path))
