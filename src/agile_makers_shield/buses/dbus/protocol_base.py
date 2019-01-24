@@ -174,6 +174,33 @@ class ProtocolObj(dbus.service.Object):
     def Subscribe(self, args):
         """Subscribe method of the protocol."""
         raise ProtocolException(self._protocol_name, "Function not supported.")
+        
+    @dbus.service.method(
+        db_cons.BUS_NAME["Add"],
+        in_signature="s",
+        out_signature=""
+    )
+    def Add(self,args):
+        """Add method of the protocol."""
+        raise ProtocolException(self._protocol_name, "Function not supported.")
+        
+    @dbus.service.method(
+        db_cons.BUS_NAME["Protocol"],
+        in_signature="",
+        out_signature="a{sv}"
+    )
+    def GetConfiguration(self):
+        """GetConfiguration method of the protocol."""
+        raise ProtocolException(self._protocol_name, "Function not supported.")
+    
+    @dbus.service.method(
+        db_cons.BUS_NAME["Protocol"],
+        in_signature="a{sv}",
+        out_signature=""
+    )
+    def SetConfiguration(self,args):
+        """SetConfiguration method of the protocol."""
+        raise ProtocolException(self._protocol_name, "Function not supported.")
 
 
 class Protocol():

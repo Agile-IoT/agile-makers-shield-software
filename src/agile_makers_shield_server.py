@@ -42,6 +42,7 @@ from agile_makers_shield.features import leds
 from agile_makers_shield.features import gps
 from agile_makers_shield.features import adc
 from agile_makers_shield.features import atmospheric_sensor
+from agile_makers_shield.buses.serial import button
 import logging
 # -----------------------
 
@@ -57,6 +58,8 @@ LOGLEVELS = ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
 # isr = interruptions.Interruptions()
 # DBus
 mainloop = GLib.MainLoop()
+ADD_NAME = "org.eclipse.agail.ProtocolManager"
+ADD_PATH = "/org/eclipse/agail/ProtocolManager"
 # -----------------------
 
 
@@ -67,7 +70,7 @@ class DBusBase(dbus.service.Object):
     def __init__(self):
         """Init method."""
         super().__init__(dbus.SessionBus(), db_cons.OBJ_PATH["Base"])
-
+                
     @dbus.service.method(
         db_cons.BUS_NAME["Base"],
         in_signature="",
@@ -77,7 +80,29 @@ class DBusBase(dbus.service.Object):
         """Exit DBus server."""
         mainloop.quit()
 # -----------------------
-
+class Signal(dbus.service.Object):
+    def __init__(self, object_path):
+        dbus.service.Object.__init__(self, dbus.SessionBus(), object_path)
+        self._logger = logging.getLogger(db_cons.LOGGER_NAME)
+            
+    @dbus.service.signal(dbus_interface = ADD_NAME)
+    def Add(self,protocol):
+        self._logger.info("Add-Signal emitted!")
+####################### SIGNAL RECEIVER ##################
+def catchall_handler(*args, **kwargs):
+    """Catch all handler.
+    Catch and print information about all signals.
+    """
+    logger = logging.getLogger(db_cons.LOGGER_NAME)
+    if (kwargs['dbus_interface'] == "iot.agile.Protocol")|(kwargs['dbus_interface'] == "org.eclipse.agail.ProtocolManager"):
+            logger.info('Signal captured:')
+            logger.debug('%s:%s' % (kwargs['dbus_interface'], kwargs['member']))
+            logger.info('Object path: %s' % kwargs['path'])
+            logger.debug('Arguments:')
+            for arg in args:
+                logger.debug('* %s' % str(arg))
+            print("\n")
+##########################################################
 
 # --- Functions ---------
 def dbus_service():
@@ -85,16 +110,27 @@ def dbus_service():
     GLib.threads_init()
     dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
     # Base
-    DBusBase()
-    # Protocols
-    xbee_802_15_4.XBee_802_15_4()
-    xbee_zigbee.XBee_ZigBee()
-    lorawan.LoRaWAN()
+    dbus_c = DBusBase()
+    
+    #################################### SIGNAL RECEIVER ###############################################################
+    dbus.SessionBus().add_signal_receiver(catchall_handler, interface_keyword='dbus_interface',
+                        member_keyword='member', path_keyword='path')
+    ####################################################################################################################
+    
+    button_c = button.Button()
+    
+    signal = Signal(ADD_PATH)
+    # Protocols 
+    xbee_c = xbee_802_15_4.XBee_802_15_4(shield_is_plugged, signal)
+    zigbee_c = xbee_zigbee.XBee_ZigBee(shield_is_plugged, signal)
+    lorawan_c = lorawan.LoRaWAN(shield_is_plugged, signal)
+    
     # Features
-    leds.LEDs()
-    gps.GPS()
-    adc.ADC()
-    atmospheric_sensor.Atmospheric_Sensor()
+    leds_c = leds.LEDs()
+    gps_c = gps.GPS()
+    adc_c = adc.ADC()
+    atmosp_c = atmospheric_sensor.Atmospheric_Sensor()
+    
     logger.info("Running AGILE DBus service.")
     try:
         mainloop.run()
@@ -121,6 +157,13 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Reads the value of the pollen sensor and "
                     "stores it in a log file"
+    )
+    parser.add_argument(
+        "-s",
+        "--shield",
+        action="store_true",
+        default=False,
+        help="Use this flag if the AGILE Maker's Shield is used."
     )
     parser.add_argument(
         "-l",
@@ -163,6 +206,7 @@ if __name__ == "__main__":
     )
     logger = logging.getLogger(db_cons.LOGGER_NAME)
     # Start DBus
+    shield_is_plugged = args.shield
     dbus_service()
     end_program(0)
 # -----------------------

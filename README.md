@@ -1,8 +1,5 @@
-
 <a name="agile-makers-shield-software"></a>
 # AGILE Maker's Shield Software
-
-
 <a name="toc"></a>
 ## Table of contents
 1. [AGILE Maker's Shield Software](#agile-makers-shield-software)
@@ -25,12 +22,17 @@
       3. [Send method](#xbee-send)
       4. [Receive method](#xbee-receive)
       5. [Disconnect method](#xbee-disconnect)
+      6. [Get configuration](#xbee-get)
+      7. [Set configuration](#xbee-set)
    4. [LoRAWAN/LoRA module](#lorawan-module)
       1. [Setup method](#lorawan-setup)
       2. [Connect method](#lorawan-connect)
       3. [Send method](#lorawan-send)
       4. [Receive method](#lorawan-receive)
       5. [Disconnect method](#lorawan-disconnect)
+      6. [Get configuration](#lorawan-get)
+      7. [Set configuration](#lorawan-set)
+    5. [DBus specification](#dbus)
 
 
 <a name="installation"></a>
@@ -62,7 +64,7 @@ sudo python3 -m pip install -r requirements.txt
 <a name="running-and-exiting"></a>
 ## Running and exiting the server
 
-To run the server, execute the `src/agile_makers_shield_server.py` program. You can set it output log level by passing an argument with `-l "LEVEL"` to any of the levels of the Logging facility for Python (the more interesting being "INFO" and "DEBUG").
+To run the server, execute the `src/agile_makers_shield_server.py` program. You can set it output log level by passing an argument with `-l "LEVEL"` to any of the levels of the Logging facility for Python (the more interesting being "INFO" and "DEBUG"). Moreove, there are two ways to connect the modules to the shield. The way there are connected must to be set by passing the argument `-s` if the shield is plugged or not passing it if it's not plugged.
 
 There are two ways of exiting the server, either by calling the Exit method (prefered) or by using `Control+C`.
 ```
@@ -183,6 +185,8 @@ Each protocol might implement the following methods:
 - Send (a{sv}) -> void
 - Receive () -> a{sv}
 - Subscribe (a{sv}) -> void
+- GetConfiguration() -> a{sv}
+- SetConfiguration(a{sv}) -> void
 
 
 <a name="protocol-usage"></a>
@@ -270,7 +274,15 @@ The Receive method returns a frame received by the module in the format of a{sv}
 
 The Disconnect method closes the communication with the XBee module.
 
+<a name="xbee-get"></a>
+##### GetConfiguration method
 
+The GetConfiguration method returns the parameters stored in the setup of the XBee module.
+
+<a name="xbee-set"></a>
+##### SetConfiguration method
+
+The SetConfiguration method configures the XBee module with the parameters from an a{sv}.
 
 
 <a name="lorawan-module"></a>
@@ -349,3 +361,56 @@ Only the "LoRa" mode can receive data. The Receive method returns a frame receiv
 ##### Disconnect method
 
 The Disconnect method closes the communication with the LoRaWAN module.
+
+<a name="lorawan-get"></a>
+##### GetConfiguration method
+
+The GetConfiguration method returns the parameters stored in the setup of LoRaWAN module.
+
+<a name="lorawan-set"></a>
+##### SetConfiguration method
+
+The SetConfiguration method configures the LoRaWAN module with the parameters from an a{sv}.
+
+<a name="dbus"></a>
+# DBus specification
+After detecting one of the possible modules in SOCKET_0 or SOCKET_1, a Dbus signal is sent over Dbus to the corresponding interface name and object path. The signal include the configuration parameters in its arguments.
+
+The interface name in all the cases is BUS_NAME = iot.agile.Protocol . The object path changes depending on the module and the socket where it has been detected:
+
+- Xbee 802.15.4
+  - iot/agile/Protocol/XBee_802_15_4/socket0
+  - iot/agile/Protocol/XBee_802_15_4/socket1
+- Xbee ZigBee
+  - iot/agile/Protocol/Xbee_ZigBee/socket0
+  - iot/agile/Protocol/Xbee_ZigBee/socket1
+- Xbee LoRaWAN
+  - iot/agile/Protocol/LoRaWAN/socket0
+  - iot/agile/Protocol/LoRaWAN/socket1
+        
+Regarding the arguments included in the sending of the signal are the following in this order: BAUDRATE, DATABITS, STOPBITS and PARITY. The values each one of them can take and the correspondence with the configuration parameters are the following:
+
+|  | **Value received in the signal** | **Value of the configuration parameter**
+| ---- | -------------- | ------------- 
+| **Baudrate** | 600  | 600  |
+|          | 1200 | 1200 |
+|          | 2400 | 2400 |
+|          | 4800 | 4800 |
+|          | 9600 | 9600 |
+|          | 19200 | 19200 |
+|          | 38400 | 38400 |
+|          | 57600 | 57600 |
+|          | 115200 | 115200 |
+| **Databits** | 0x00  | 5  |
+|          | 0x02 | 6 |
+|          | 0x04 | 7 |
+|          | 0x06 | 8 |
+| **Stopbits** | 0x00  | 1  |
+|          | 0x08 | 2 |
+| **Parity** | 0x00  | None  |
+|          | 0x20 | Even |
+|          | 0x30 | Odd |
+
+
+
+

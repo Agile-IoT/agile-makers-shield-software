@@ -55,6 +55,7 @@ class Interruptions(metaclass=singleton.Singleton):
     def __init__(self):
         """Init method."""
         self._observers = []
+        self._int = 0
         self._interrupts = {
             INT_UART_0: False,
             INT_UART_1: False,
@@ -82,24 +83,31 @@ class Interruptions(metaclass=singleton.Singleton):
                 interrupt = interrupt | INT_BUTTON_0
             if self._atmega.getButtonInterrupt(atmega.SOCKET_1):
                 interrupt = interrupt | INT_BUTTON_1
+            self._int = interrupt
             self._update_observers(interrupt)
 
     def _update_observers(self, interrupt):
         for observer in self._observers:
             if (observer.attribute & interrupt):
                 observer.update()
+        interrupt = 0
 
     def register(self, observer):
         """Register a subscriptor to the events."""
         if (observer.attribute & INT_UART_0) and self._interrupts[INT_UART_0]:
-            raise IOError("Socket 0 already in use")
+                raise IOError("Socket 0 already in use")
         if (observer.attribute & INT_UART_1) and self._interrupts[INT_UART_1]:
-            raise IOError("Socket 1 already in use")
+                raise IOError("Socket 1 already in use")
         if observer not in self._observers:
             if (observer.attribute & INT_UART_0):
                 self._interrupts[INT_UART_0] = True
             if (observer.attribute & INT_UART_1):
                 self._interrupts[INT_UART_1] = True
+            if (observer.attribute & INT_BUTTON_0):
+                self._interrupts[INT_BUTTON_0] = True
+            if (observer.attribute & INT_BUTTON_1):
+                self._interrupts[INT_BUTTON_1] = True
+                
             self._observers.append(observer)
 
     def unregister(self, observer):
@@ -109,6 +117,10 @@ class Interruptions(metaclass=singleton.Singleton):
                 self._interrupts[INT_UART_0] = False
             if (observer.attribute & INT_UART_1):
                 self._interrupts[INT_UART_1] = False
+            if (observer.attribute & INT_BUTTON_0):
+                self._interrupts[INT_BUTTON_0] = False
+            if (observer.attribute & INT_BUTTON_1):
+                self._interrupts[INT_BUTTON_1] = False    
             self._observers.remove(observer)
 
     def close(self):

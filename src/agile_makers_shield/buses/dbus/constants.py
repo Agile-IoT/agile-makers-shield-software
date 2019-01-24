@@ -34,12 +34,14 @@ LOGGER_NAME = "AGILE_DBus"
 BUS_NAME = {
     "Base": "iot.agile.MakersShield",
     "Protocol": "iot.agile.Protocol",
-    "Feature": "iot.agile.Feature"
+    "Feature": "iot.agile.Feature",
+    "Add": "org.eclipse.agail.ProtocolManager"
 }
 OBJ_PATH = {
     "Base": "/iot/agile/MakersShield",
     "Protocol": "/iot/agile/Protocol",
-    "Feature": "/iot/agile/Feature"
+    "Feature": "/iot/agile/Feature",
+    "Add": "/org/eclipse/agail/ProtocolManager"
 }
 SOCKET0 = "socket0"
 SOCKET1 = "socket1"

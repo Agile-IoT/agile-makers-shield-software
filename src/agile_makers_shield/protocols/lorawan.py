@@ -30,10 +30,10 @@ import dbus
 import dbus.service
 from agile_makers_shield.buses.dbus import protocol_base as dbP
 from agile_makers_shield.buses.dbus import constants as db_cons
-from agile_makers_shield.buses.serial import serial_bus as serial
+from agile_makers_shield.buses.serial import serial_bus as serial_shield
+import serial
 import time
 # -----------------------
-
 
 # --- Variables ---------
 # LoRaWAN Module
@@ -150,14 +150,13 @@ DEF_WDT = "15000"
 class LoRaWAN(dbP.Protocol):
     """Expose LoRaWAN over DBus."""
 
-    def __init__(self):
+    def __init__(self, shield_is_plugged, signal):
         """Init method."""
         super().__init__()
         self._protocol_name = PROTOCOL_NAME
         self._exception = LoRaWAN_Exception()
-        self._objS0 = LoRaWAN_Obj(self._socket0)
-        self._objS1 = LoRaWAN_Obj(self._socket1)
-
+        self._objS0 = LoRaWAN_Obj(self._socket0, shield_is_plugged, signal)
+        self._objS1 = LoRaWAN_Obj(self._socket1, shield_is_plugged, signal)
 
 class LoRaWAN_Exception(dbP.ProtocolException):
     """Exceptions for LoRaWAN."""
@@ -170,7 +169,7 @@ class LoRaWAN_Exception(dbP.ProtocolException):
 class LoRaWAN_Obj(dbP.ProtocolObj):
     """DBus object for LoRaWAN."""
 
-    def __init__(self, socket):
+    def __init__(self, socket, shield_is_plugged, signal):
         """Init method."""
         super().__init__(PROTOCOL_NAME, socket)
         self._setup = {
@@ -179,6 +178,8 @@ class LoRaWAN_Obj(dbP.ProtocolObj):
             SETLWOPTION["SAVE"]: DEF_SAVE,
             SETLWOPTION["JOIN"]: DEF_JOIN
         }
+        self._signal = signal
+        self._shield = shield_is_plugged
 
     # Override DBus object methods
 
@@ -202,11 +203,12 @@ class LoRaWAN_Obj(dbP.ProtocolObj):
             self._full_path,
             self._setup[SETUP["MODE"]]
         ))
-        self._module = serial.Serial(
-            self._getSocketDev(self._socket),
-            self._setup[SETUP["BAUDRATE"]],
-            timeout=TIMEOUT
-        )
+        if self._shield:
+                self._module = serial_shield.Serial(self._getSocketDev(self._socket),
+                        self._setup[SETUP["BAUDRATE"]], timeout=TIMEOUT)
+        else:
+            self._module = serial.Serial("/dev/ttyUSB0", self._setup[SETUP["BAUDRATE"]], timeout=TIMEOUT)
+        
         # Reset the module and clean the buffer
         self._module.write(CMD["SYS_RESET"])
         time.sleep(GUARDTIME["DEFAULT"])
@@ -392,76 +394,7 @@ class LoRaWAN_Obj(dbP.ProtocolObj):
         """Configure the LoRaWAN module."""
         self._logger.debug("{}@Setup: Setup INIT".format(self._full_path))
         self._setup.clear()
-        self._setup = {}
-        # Store Setup Params: baudrate, mode, save
-        baudrate = int(args.pop(SETUP["BAUDRATE"], DEF_BAUDRATE))
-        if (baudrate < 0) or (baudrate > 921600):
-            self._logger.debug("{}@Setup: Invalid baudrate".format(
-                self._full_path
-            ))
-            raise LoRaWAN_Exception("Invalid baudrate.")
-        self._setup[SETUP["BAUDRATE"]] = baudrate
-        mode = args.pop(SETUP["MODE"], DEF_MODE)
-        if (mode != LORAWAN_MODE) and (mode != LORA_MODE):
-            self._logger.debug("{}@Setup: Invalid baudrate".format(
-                self._full_path
-            ))
-            raise LoRaWAN_Exception("Invalid mode.")
-        self._setup[SETUP["MODE"]] = mode
-        # LoRa Mode
-        if self._setup[SETUP["MODE"]] == LORA_MODE:
-            # Store LoRa Params: freq, sf, cr, bw, crc, pwr
-            self._setup[SETRADPARAM["FREQ"]] = args.pop(
-                SETRADPARAM["FREQ"],
-                DEF_FREQ
-            )
-            self._setup[SETRADPARAM["SF"]] = args.pop(
-                SETRADPARAM["SF"],
-                DEF_SF
-            )
-            self._setup[SETRADPARAM["CR"]] = args.pop(
-                SETRADPARAM["CR"],
-                DEF_CR
-            )
-            self._setup[SETRADPARAM["BW"]] = args.pop(
-                SETRADPARAM["BW"],
-                DEF_BW
-            )
-            self._setup[SETRADPARAM["CRC"]] = args.pop(
-                SETRADPARAM["CRC"],
-                DEF_CRC
-            )
-            self._setup[SETRADPARAM["PWR"]] = args.pop(
-                SETRADPARAM["PWR"],
-                DEF_PWR
-            )
-            self._setup[SETRADPARAM["WDT"]] = DEF_WDT  # XXX: Hardcoded
-        # LoRaWAN Mode
-        else:
-            # Store LoRaWAN Params: save, join, deveui, appeui,
-            #                       appkey, devaddr, nwkskey, appskey
-            self._setup[SETLWOPTION["SAVE"]] = args.pop(
-                SETLWOPTION["SAVE"],
-                DEF_SAVE
-            )
-            join = args.pop(SETLWOPTION["JOIN"], DEF_JOIN)
-            if join not in JOINLWMODE.values():
-                self._logger.debug("{}@Setup: Invalid join".format(
-                    self._full_path
-                ))
-                raise LoRaWAN_Exception("Invalid join.")
-            self._setup[SETLWOPTION["JOIN"]] = join
-            # As the rest of the parameters are optional,
-            # ask forgiveness not permission
-            for lwParam in SETLWPARAM.values():
-                try:
-                    self._setup[lwParam] = args.pop(lwParam)
-                except KeyError:
-                    pass
-        self._logger.debug("{}@Setup: Parameters={}".format(
-            self._full_path,
-            self._setup
-        ))
+        self.SetConfiguration(args)
         self._logger.debug("{}@Setup: Setup OK".format(
             self._full_path,
             self._setup
@@ -784,4 +717,98 @@ class LoRaWAN_Obj(dbP.ProtocolObj):
                                "LoRaWAN mode".format(self._full_path))
             raise LoRaWAN_Exception("Cannot receive data in LoRaWAN mode.")
         return dbus.Dictionary(result, signature="sv")
+    
+    @dbus.service.method(
+        db_cons.BUS_NAME["Protocol"],
+        in_signature="",
+        out_signature="a{sv}"
+    )
+    def GetConfiguration(self):
+        return self._setup
+    
+    @dbus.service.method(
+        db_cons.BUS_NAME["Protocol"],
+        in_signature="a{sv}",
+        out_signature=""
+    )
+    def SetConfiguration(self, args):
+        self._setup = {}
+        # Store Setup Params: baudrate, mode, save
+        baudrate = int(args.pop(SETUP["BAUDRATE"], DEF_BAUDRATE))
+        if (baudrate < 0) or (baudrate > 921600):
+            self._logger.debug("{}@Setup: Invalid baudrate".format(
+                self._full_path
+            ))
+            raise LoRaWAN_Exception("Invalid baudrate.")
+        self._setup[SETUP["BAUDRATE"]] = baudrate
+        mode = args.pop(SETUP["MODE"], DEF_MODE)
+        if (mode != LORAWAN_MODE) and (mode != LORA_MODE):
+            self._logger.debug("{}@Setup: Invalid baudrate".format(
+                self._full_path
+            ))
+            raise LoRaWAN_Exception("Invalid mode.")
+        self._setup[SETUP["MODE"]] = mode
+        # LoRa Mode
+        if self._setup[SETUP["MODE"]] == LORA_MODE:
+            # Store LoRa Params: freq, sf, cr, bw, crc, pwr
+            self._setup[SETRADPARAM["FREQ"]] = args.pop(
+                SETRADPARAM["FREQ"],
+                DEF_FREQ
+            )
+            self._setup[SETRADPARAM["SF"]] = args.pop(
+                SETRADPARAM["SF"],
+                DEF_SF
+            )
+            self._setup[SETRADPARAM["CR"]] = args.pop(
+                SETRADPARAM["CR"],
+                DEF_CR
+            )
+            self._setup[SETRADPARAM["BW"]] = args.pop(
+                SETRADPARAM["BW"],
+                DEF_BW
+            )
+            self._setup[SETRADPARAM["CRC"]] = args.pop(
+                SETRADPARAM["CRC"],
+                DEF_CRC
+            )
+            self._setup[SETRADPARAM["PWR"]] = args.pop(
+                SETRADPARAM["PWR"],
+                DEF_PWR
+            )
+            self._setup[SETRADPARAM["WDT"]] = DEF_WDT  # XXX: Hardcoded
+        # LoRaWAN Mode
+        else:
+            # Store LoRaWAN Params: save, join, deveui, appeui,
+            #                       appkey, devaddr, nwkskey, appskey
+            self._setup[SETLWOPTION["SAVE"]] = args.pop(
+                SETLWOPTION["SAVE"],
+                DEF_SAVE
+            )
+            join = args.pop(SETLWOPTION["JOIN"], DEF_JOIN)
+            if join not in JOINLWMODE.values():
+                self._logger.debug("{}@Setup: Invalid join".format(
+                    self._full_path
+                ))
+                raise LoRaWAN_Exception("Invalid join.")
+            self._setup[SETLWOPTION["JOIN"]] = join
+            # As the rest of the parameters are optional,
+            # ask forgiveness not permission
+            for lwParam in SETLWPARAM.values():
+                try:
+                    self._setup[lwParam] = args.pop(lwParam)
+                except KeyError:
+                    pass
+        self._logger.debug("{}@Setup: Parameters={}".format(
+            self._full_path,
+            self._setup
+        ))
+        self.Add("LORA_PROTOCOL_ID")
+        
+    @dbus.service.method(
+        db_cons.BUS_NAME["Add"],
+        in_signature="s",
+        out_signature=""
+    )
+    def Add(self, args):
+        self._signal.Add(args)
 # -----------------------

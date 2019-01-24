@@ -29,9 +29,10 @@ Date: May 2017
 import dbus
 import dbus.service
 import signal
-from agile_makers_shield.buses.serial import serial_bus as serial
 from agile_makers_shield.buses.dbus import protocol_base as dbP
 from agile_makers_shield.buses.dbus import constants as db_cons
+from agile_makers_shield.buses.serial import serial_bus as serial_shield
+import serial
 import xbee
 import time
 # -----------------------
@@ -56,19 +57,16 @@ CMDWRITE = b"WR"
 TIMEOUT = 2
 GUARDTIME = 0.3
 # -----------------------
-
-
 # --- Classes -----------
 class XBee_ZigBee(dbP.Protocol):
     """Expose the XBee ZigBee over DBus."""
 
-    def __init__(self):
+    def __init__(self,shield_is_plugged, signal):
         """Init method."""
         super().__init__()
         self._protocol_name = PROTOCOL_NAME
-        self._objS0 = XBee_ZigBee_Obj(self._socket0)
-        self._objS1 = XBee_ZigBee_Obj(self._socket1)
-
+        self._objS0 = XBee_ZigBee_Obj(self._socket0,shield_is_plugged, signal)
+        self._objS1 = XBee_ZigBee_Obj(self._socket1,shield_is_plugged, signal)
 
 class XBee_ZigBee_Exception(dbP.ProtocolException):
     """Exceptions for XBee ZigBee."""
@@ -81,7 +79,7 @@ class XBee_ZigBee_Exception(dbP.ProtocolException):
 class XBee_ZigBee_Obj(dbP.ProtocolObj):
     """DBus object for XBee ZigBee."""
 
-    def __init__(self, socket):
+    def __init__(self, socket,shield_is_plugged, signal):
         """Init method."""
         super().__init__(PROTOCOL_NAME, socket)
         self._setup = {
@@ -90,6 +88,8 @@ class XBee_ZigBee_Obj(dbP.ProtocolObj):
             ATCMDS: []
         }
         self._received_data = []
+        self._shield = shield_is_plugged
+        self._signal = signal
 
     # FIXME: To use as callback function for XBee, but multithread
     # doesn't work well with DBus, so instead a blocking function
@@ -140,10 +140,12 @@ class XBee_ZigBee_Obj(dbP.ProtocolObj):
             self._logger.debug("{}@Connect: Module is already "
                                "connected".format(self._full_path))
             raise XBee_ZigBee_Exception("Module is already connected.")
-        self._serial = serial.Serial(
-            self._getSocketDev(self._socket),
-            self._setup[BAUDRATE]
-        )
+        if self._shield:
+                self._serial = serial_shield.Serial(self._getSocketDev(self._socket),
+                        self._setup[BAUDRATE])
+        else:
+            self._serial = serial.Serial("/dev/ttyUSB0", self._setup[BAUDRATE])
+        
         time.sleep(GUARDTIME)
         self._serial.flush()
         # FIXME: See _update_data
@@ -244,23 +246,7 @@ class XBee_ZigBee_Obj(dbP.ProtocolObj):
         """Configure the XBee ZigBee module."""
         self._logger.debug("{}@Setup: Setup INIT".format(self._full_path))
         self._setup.clear()
-        self._setup = {
-            BAUDRATE: DEF_BAUDRATE,
-            APIMODE2: DEF_APIMODE2,
-            ATCMDS: []
-        }
-        for key in args.keys():
-            if key == BAUDRATE:
-                self._setup[BAUDRATE] = int(args[BAUDRATE])
-            elif key == APIMODE2:
-                self._setup[APIMODE2] = bool(args[APIMODE2])
-            else:
-                try:
-                    param = int(args[key], 16)
-                except ValueError:
-                    param = 0x00
-                finally:
-                    self._setup[ATCMDS].append({str(key): param})
+        self.SetConfiguration(args)
         self._logger.debug("{}@Setup: Setup OK".format(self._full_path))
 
     @dbus.service.method(
@@ -316,4 +302,47 @@ class XBee_ZigBee_Obj(dbP.ProtocolObj):
         )
         self._logger.debug("{}@Receive: Receive OK".format(self._full_path))
         return dbus.Dictionary(result, signature="sv")
-# -----------------------
+    
+    
+    @dbus.service.method(
+        db_cons.BUS_NAME["Protocol"],
+        in_signature="",
+        out_signature="a{sv}"
+    )
+    def GetConfiguration(self):
+        return self._setup
+    
+    @dbus.service.method(
+        db_cons.BUS_NAME["Protocol"],
+        in_signature="a{sv}",
+        out_signature=""
+    )
+    def SetConfiguration(self, args):
+        self._logger.debug("entering setconfiguration")
+        self._setup = {
+            BAUDRATE: DEF_BAUDRATE,
+            APIMODE2: DEF_APIMODE2,
+            ATCMDS: []
+        }
+        for key in args.keys():
+            if key == BAUDRATE:
+                self._setup[BAUDRATE] = int(args[BAUDRATE])
+            elif key == APIMODE2:
+                self._setup[APIMODE2] = bool(args[APIMODE2])
+            else:
+                try:
+                    param = int(args[key], 16)
+                except ValueError:
+                    param = 0x00
+                finally:
+                    self._setup[ATCMDS].append({str(key): param})
+        self.Add("ZB_PROTOCOL_ID")
+    
+    @dbus.service.method(
+        db_cons.BUS_NAME["Add"],
+        in_signature="s",
+        out_signature=""
+    )
+    def Add(self, args):
+        self._signal.Add(args)
+                

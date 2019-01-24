@@ -49,10 +49,10 @@ PROTOCOL_NAME = "XBee_802_15_4"
 BAUDRATE = 9600
 API_MODE_2 = True
 # XXX: MAC Address of the Socket 1 Module
-DEST_ADDRESS = [0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07]
+DEST_ADDRESS = [0x00, 0x13, 0xA2, 0x00, 0x40, 0x68, 0x6F, 0xBB]
 msg = list(b"Test frame")
 PAN_ID = "1234"
-CHANNEL = "0F"
+CHANNEL = "0C"
 ENCRYPTION_MODE = "0"
 ENCRYPTION_KEY = "0102030405060708"
 DELAY = 2  # Time between frames sent in seconds
@@ -118,6 +118,7 @@ class StoppableThread(threading.Thread):
             self.stop()
         else:
             # Receive data
+            threadSocket0.start()
             while True:
                 if self.stopped():
                     break
@@ -142,9 +143,9 @@ def run_example():
     """Connect the modules and send messages between them."""
     print("\x1b[1;37;39m" + "XBee 802.15.4 Example" + "\x1b[0m")
     # Start threads
-    threadSocket0.start()
     threadSocket1.start()
     # Wait for thread 0 to finish
+    time.sleep(10)
     threadSocket0.join()
     time.sleep(DELAY)
     threadSocket1.stop()
@@ -168,6 +169,7 @@ def setup():
     )
     protocol_0 = dbus.Interface(obj_0, dbus_interface=BUS_NAME)
     protocol_1 = dbus.Interface(obj_1, dbus_interface=BUS_NAME)
+  
     # Threads
     threadSocket0 = StoppableThread(SOCKET0, protocol_0)
     threadSocket1 = StoppableThread(SOCKET1, protocol_1)
